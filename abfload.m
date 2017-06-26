@@ -246,6 +246,7 @@ Sections=define_Sections;
 ProtocolInfo=define_ProtocolInfo;
 ADCInfo=define_ADCInfo;
 TagInfo=define_TagInfo;
+EpochPerDACInfo=define_EpochPerDACInfo;
 
 % -------------------------------------------------------------------------
 %    PART 2c: read parameters of interest
@@ -380,7 +381,20 @@ else
   TagSection.uBlockIndex=h.lTagSectionPtr;
   TagSection.uBytes=64;
 end
-
+% --- read in the Epoch section and copy some values to header h 
+  for i=1:EpochPerDACSection.llNumEntries 
+    EPDsec(i)=ReadSection(fid,EpochPerDACSection.uBlockIndex*BLOCKSIZE+EpochPerDACSection.uBytes*(i-1),EpochPerDACInfo); 
+    ii=EPDsec(i).nEpochNum+1; 
+    h.nEpochNum(ii)=EPDsec(i).nEpochNum; 
+    h.nDACNum(ii)=EPDsec(i).nDACNum; 
+    h.nEpochType(ii)=EPDsec(i).nEpochType; 
+    h.fEpochInitLevel(ii)=EPDsec(i).fEpochInitLevel; 
+    h.fEpochLevelInc(ii)=EPDsec(i).fEpochLevelInc; 
+    h.lEpochInitDuration(ii)=EPDsec(i).lEpochInitDuration; 
+    h.lEpochDurationInc(ii)=EPDsec(i).lEpochDurationInc; 
+    h.lEpochPulsePeriod(ii)=EPDsec(i).lEpochPulsePeriod; 
+    h.lEpochPulseWidth(ii)=EPDsec(i).lEpochPulseWidth; 
+  end
 % -------------------------------------------------------------------------
 %    PART 2d: groom parameters & perform some plausibility checks
 % -------------------------------------------------------------------------
@@ -694,7 +708,7 @@ switch h.nOperationMode
     tmp=1e-6*h.lActualAcqLength*h.fADCSampleInterval;
     if verbose
       disp(['total length of recording: ' num2str(tmp,'%5.1f') ' s ~ ' num2str(tmp/60,'%3.0f') ' min']);
-      disp(['sampling interval: ' num2str(h.si,'%5.0f') ' µs']);
+      disp(['sampling interval: ' num2str(h.si,'%5.0f') ' Âµs']);
       % 8 bytes per data point expressed in Mb
       disp(['memory requirement for complete upload in matlab: '...
         num2str(round(8*h.lActualAcqLength/2^20)) ' MB']);
@@ -893,7 +907,18 @@ switch fileSig
      'uProtocolPathIndex',72,'uint32',-1;
      };
 end
-
+function EpochPerDACInfo=define_EpochPerDACInfo 
+EpochPerDACInfo={ 
+    'nEpochNum','int16',1; 
+    'nDACNum','int16',1; 
+    'nEpochType','int16',1; 
+    'fEpochInitLevel','float',1; 
+    'fEpochLevelInc','float',1; 
+    'lEpochInitDuration','int32',1; 
+    'lEpochDurationInc','int32',1; 
+    'lEpochPulsePeriod','int32',1; 
+    'lEpochPulseWidth','int32',1; 
+};
 function Sections=define_Sections
 Sections={'ProtocolSection';
  'ADCSection';
