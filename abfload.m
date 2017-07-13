@@ -310,20 +310,20 @@ if h.fFileVersionNumber>=2
   for i=1:length(stringends)-1
     Strings{i}=char(BigString(stringends(i)+1:stringends(i+1)-1));
   end
-  h.recChNames=[];
-  h.recChUnits=[];
+  h.recChNames=cell(ADCSection.llNumEntries,1);
+  h.recChUnits=cell(ADCSection.llNumEntries,1);
   
   % --- read in the ADCSection & copy some values to header h
   for i=1:ADCSection.llNumEntries
     ADCsec(i)=ReadSection(fid,ADCSection.uBlockIndex*BLOCKSIZE+ADCSection.uBytes*(i-1),ADCInfo);
     ii=ADCsec(i).nADCNum+1;
     h.nADCSamplingSeq(i)=ADCsec(i).nADCNum;
-    h.recChNames=char(h.recChNames, Strings{ADCsec(i).lADCChannelNameIndex});
+    h.recChNames(i)=Strings(ADCsec(i).lADCChannelNameIndex);
     unitsIndex=ADCsec(i).lADCUnitsIndex;
     if unitsIndex>0
-        h.recChUnits=char(h.recChUnits, Strings{ADCsec(i).lADCUnitsIndex});
+        h.recChUnits(i)=Strings(ADCsec(i).lADCUnitsIndex);
     else
-        h.recChUnits=char(h.recChUnits,'nil');
+        h.recChUnits(i)={'nil'};
     end
     h.nTelegraphEnable(ii)=ADCsec(i).nTelegraphEnable;
     h.fTelegraphAdditGain(ii)=ADCsec(i).fTelegraphAdditGain;
@@ -405,10 +405,10 @@ if h.fFileVersionNumber<2
   % same with signal units
   h.recChUnits=(reshape(char(h.sADCUnits),8,16))';
   h.recChUnits=h.recChUnits(recChIdx+1,:);
+  % convert to cell arrays
+  h.recChNames=deblank(cellstr(h.recChNames));
+  h.recChUnits=deblank(cellstr(h.recChUnits));
 end
-% convert to cell arrays
-h.recChNames=deblank(cellstr(h.recChNames));
-h.recChUnits=deblank(cellstr(h.recChUnits));
 
 % check whether requested channels exist
 chInd=[];
