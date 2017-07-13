@@ -723,15 +723,15 @@ switch h.nOperationMode
     if doLoadData
       % *** decide on the most efficient way to read data:
       % (i) all (of one or several) channels requested: read, done
-      % (ii) one (of several) channels requested: use the 'skip' feature of
-      % fread
+      % (ii) one (of many) channels requested: use the 'skip' feature of
+      % fread (which for up to 16 channels is slower than scenario iii below)
       % (iii) more than one but not all (of several) channels requested:
       % 'discontinuous' mode of reading data. Read a reasonable chunk of data
       % (all channels), separate channels, discard non-requested ones (if
       % any), place data in preallocated array, repeat until done. This is
       % faster than reading the data in one big lump, separating channels and
       % discarding the ones not requested
-      if length(chInd)==1 && h.nADCNumChannels>1
+      if length(chInd)==1 && h.nADCNumChannels>16
         % --- situation (ii)
         % jump to proper reading frame position in file
         if fseek(fid,(chInd-1)*dataSz,'cof')~=0
