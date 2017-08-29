@@ -351,19 +351,29 @@ if h.fFileVersionNumber>=2
   h.fADCRange=ProtocolSec.fADCRange;
   h.lADCResolution=ProtocolSec.lADCResolution;
   
-  % --- read in the Epoch section and copy some values to header h
+  % --- read in the Epoch section, rearrange values and place in header
+  % struct h
   for i=1:EpochPerDACSection.llNumEntries
     EPDsec(i)=ReadSection(fid,EpochPerDACSection.uBlockIndex*BLOCKSIZE+EpochPerDACSection.uBytes*(i-1),EpochPerDACInfo);
-    ii=EPDsec(i).nEpochNum+1;
-    h.nEpochNum(ii)=EPDsec(i).nEpochNum;
-    h.nDACNum(ii)=EPDsec(i).nDACNum;
-    h.nEpochType(ii)=EPDsec(i).nEpochType;
-    h.fEpochInitLevel(ii)=EPDsec(i).fEpochInitLevel;
-    h.fEpochLevelInc(ii)=EPDsec(i).fEpochLevelInc;
-    h.lEpochInitDuration(ii)=EPDsec(i).lEpochInitDuration;
-    h.lEpochDurationInc(ii)=EPDsec(i).lEpochDurationInc;
-    h.lEpochPulsePeriod(ii)=EPDsec(i).lEpochPulsePeriod;
-    h.lEpochPulseWidth(ii)=EPDsec(i).lEpochPulseWidth;
+  end
+  if EpochPerDACSection.llNumEntries>0
+    % number of analog output (AO) channels
+    uniqueAO=unique([EPDsec.nDACNum]);
+    for k=1:numel(uniqueAO)
+      % index to elements of EDPsec dealing with current AO channel
+      ix=[EPDsec.nDACNum]==uniqueAO(k);
+      % struct DACEpoch contains one element per AO channel; the values of
+      % its fields represent the values of the different epochs (columns
+      % labeled A, B and so on in the waveform tab in clampex), the only
+      % exception being the numeric index of the channel
+      h.DACEpoch(k).nDACNum=uniqueAO(k);
+      fieldNm=setdiff(fieldnames(EPDsec),'nDACNum','stable');
+      for fIx=1:numel(fieldNm)
+        h.DACEpoch(k).(fieldNm{fIx})=[EPDsec(ix).(fieldNm{fIx})];
+      end
+    end
+  else
+    h.DACEpoch=[];
   end
   % --- read in the user list section - unclear how to get the values
   % (commented code lines below are a first guess)
@@ -907,18 +917,7 @@ switch fileSig
      'uProtocolPathIndex',72,'uint32',-1;
      };
 end
-function EpochPerDACInfo=define_EpochPerDACInfo 
-EpochPerDACInfo={ 
-    'nEpochNum','int16',1; 
-    'nDACNum','int16',1; 
-    'nEpochType','int16',1; 
-    'fEpochInitLevel','float',1; 
-    'fEpochLevelInc','float',1; 
-    'lEpochInitDuration','int32',1; 
-    'lEpochDurationInc','int32',1; 
-    'lEpochPulsePeriod','int32',1; 
-    'lEpochPulseWidth','int32',1; 
-};
+
 function Sections=define_Sections
 Sections={'ProtocolSection';
  'ADCSection';
@@ -1045,6 +1044,19 @@ ADCInfo={
  'lADCChannelNameIndex','int32',1;
  'lADCUnitsIndex','int32',1;
  };
+
+function EpochPerDACInfo=define_EpochPerDACInfo 
+EpochPerDACInfo={ 
+    'nEpochNum','int16',1; 
+    'nDACNum','int16',1; 
+    'nEpochType','int16',1; 
+    'fEpochInitLevel','float',1; 
+    'fEpochLevelInc','float',1; 
+    'lEpochInitDuration','int32',1; 
+    'lEpochDurationInc','int32',1; 
+    'lEpochPulsePeriod','int32',1; 
+    'lEpochPulseWidth','int32',1; 
+};
 
 function TagInfo=define_TagInfo
 TagInfo={
