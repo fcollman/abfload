@@ -288,6 +288,9 @@ if h.fFileVersionNumber>=2
   % - find '.pro' as this is the file extension of protocol files
   tmpIx2=strfind(lower(char(BigString)'),'.pro');
   % - extract everything in between and place in field of header struct h
+  tmpIx3=strfind((char(BigString)'),'IN');
+  h.comment1=char(BigString(tmpIx2(1)+4:tmpIx3(1)-1))';
+
   if ~isempty(tmpIx1) && ~isempty(tmpIx2) 
     h.protocolName=char(BigString(tmpIx1:tmpIx2(1)+3))';
   else
@@ -718,7 +721,7 @@ switch h.nOperationMode
     tmp=1e-6*h.lActualAcqLength*h.fADCSampleInterval;
     if verbose
       disp(['total length of recording: ' num2str(tmp,'%5.1f') ' s ~ ' num2str(tmp/60,'%3.0f') ' min']);
-      disp(['sampling interval: ' num2str(h.si,'%5.0f') ' µs']);
+      disp(['sampling interval: ' num2str(h.si,'%5.0f') ' Âµs']);
       % 8 bytes per data point expressed in Mb
       disp(['memory requirement for complete upload in matlab: '...
         num2str(round(8*h.lActualAcqLength/2^20)) ' MB']);
