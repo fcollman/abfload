@@ -337,6 +337,7 @@ if h.fFileVersionNumber>=2
   ProtocolSec=ReadSection(fid,ProtocolSection.uBlockIndex*BLOCKSIZE,ProtocolInfo);
   h.nOperationMode=ProtocolSec.nOperationMode;
   h.fSynchTimeUnit=ProtocolSec.fSynchTimeUnit;
+  h.lNumSamplesPerEpisode=ProtocolSec.lNumSamplesPerEpisode;
   
   h.nADCNumChannels=ADCSection.llNumEntries;
   h.lActualAcqLength=DataSection.llNumEntries;
@@ -367,6 +368,20 @@ if h.fFileVersionNumber>=2
       % labeled A, B and so on in the waveform tab in clampex), the only
       % exception being the numeric index of the channel
       h.DACEpoch(k).nDACNum=uniqueAO(k);
+      % compute the 'first/last holding' values, the small additional delay
+      % after which stimulation waveforms are put out. The unit is sample
+      % points. ** NOTE: the formula below is based on
+      % i) code in function ABFH_GetHoldingDuration in abfhwave.cpp,
+      % presumably a code file belonging to an early version of program
+      % 'stimfit', and presumably derived from code available back then
+      % from the company formerly known as Axon Instruments
+      % ii) heuristics, determined from a number of abf V. 2.00 files from
+      % different labs in all of which 16/8-channel ADC/DAC systems were
+      % used.
+      % The formula may be hardware dependent; it may change (=be
+      % corrected, should it not be general) in the future.
+      h.DACEpoch(k).firstHolding=floor(...
+        8*(h.lNumSamplesPerEpisode/h.nADCNumChannels)/512);
       fieldNm=setdiff(fieldnames(EPDsec),'nDACNum','stable');
       for fIx=1:numel(fieldNm)
         h.DACEpoch(k).(fieldNm{fIx})=[EPDsec(ix).(fieldNm{fIx})];
