@@ -50,6 +50,10 @@ function [d,si,h]=abfload(fn,varargin)
 %                                 the platform the data were recorded/shall
 %                                 be read by abfload 'ieee-be' is the 
 %                                 alternative.
+% doDispInfo  logical, true      if true, information on the loaded file
+%                                 will be put out to console (if false,
+%                                 only ínformation on erroneous input will
+%                                 be displayed)
 % << OUTPUT VARIABLES <<<
 % NAME  TYPE            DESCRIPTION
 % d                     the data read, the format depending on the record-
@@ -90,7 +94,6 @@ function [d,si,h]=abfload(fn,varargin)
 % -------------------------------------------------------------------------
 %                       PART 1: check of input vars
 % -------------------------------------------------------------------------
-disp(['** ' mfilename])
 % --- defaults   
 % gap-free
 start=0.0;
@@ -104,12 +107,21 @@ channels='a';
 % 5-30 min
 chunk=0.05;
 machineF='ieee-le';
-verbose=1;
+doDispInfo=true;
 % if first and only optional input argument is string 'info' the user's
 % request is to obtain information on the file (header parameters), so set
 % flag accordingly
 if nargin==2 && ischar(varargin{1}) && strcmp('info',varargin{1})
   doLoadData=false;
+  % if no output argument is requested assume that the user would like to
+  % obtain some basic information on the file on the command window, so
+  % leave doDispInfo at its default (true value). Do the same if only one
+  % output arg is specified (which is most certainly done inadvertently
+  % because in 'info' mode this will be an empty array). In all other cases
+  % assume that text output is not required so suppress it
+  if nargout>1
+    doDispInfo=false;
+  end
 else
   doLoadData=true;
   % assign values of optional input parameters if any were given
@@ -135,7 +147,7 @@ end
 % -------------------------------------------------------------------------
 %                       PART 2a: determine abf version
 % -------------------------------------------------------------------------
-disp(['opening ' fn '..']);
+dispif(doDispInfo,['opening ' fn '..']);
 [fid,messg]=fopen(fn,'r',machineF);
 if fid == -1
   error(messg);
@@ -468,11 +480,9 @@ if eflag
   disp('**** requested channels:');
   disp(channels);
   error('at least one of the requested channels does not exist in data file (see above)');
-end
-% display available channels if in info mode
-if ~doLoadData
-  disp('**** available channels:');
-  disp(h.recChNames);
+else
+  dispif(doDispInfo,'**** available channels:');
+  dispif(doDispInfo,h.recChNames);
 end
 
 % gain of telegraphed instruments, if any
@@ -533,7 +543,7 @@ end
 % -------------------------------------------------------------------------
 switch h.nOperationMode
   case 1
-    disp('data were acquired in event-driven variable-length mode');
+    dispif(doDispInfo,'data were acquired in event-driven variable-length mode');
     if h.fFileVersionNumber>=2.0
       errordlg('abfload currently does not work with data acquired in event-driven variable-length mode and ABF version 2.0','ABF version issue');
     else
@@ -608,11 +618,11 @@ switch h.nOperationMode
     
   case {2,4,5}
     if h.nOperationMode==2
-      disp('data were acquired in event-driven fixed-length mode');
+      dispif(doDispInfo,'data were acquired in event-driven fixed-length mode');
     elseif h.nOperationMode==4
-      disp('data were acquired in high-speed oscilloscope mode');
+      dispif(doDispInfo,'data were acquired in high-speed oscilloscope mode');
     else
-      disp('data were acquired in waveform fixed-length mode');
+      dispif(doDispInfo,'data were acquired in waveform fixed-length mode');
     end
     % extract timing information on sweeps
     if (h.lSynchArrayPtr<=0 || h.lSynchArraySize<=0)
@@ -707,7 +717,7 @@ switch h.nOperationMode
     end
     
   case 3
-    disp('data were acquired in gap-free mode');
+    dispif(doDispInfo,'data were acquired in gap-free mode');
     % from start, stop, headOffset and h.fADCSampleInterval calculate first point to be read
     %  and - unless stop is given as 'e' - number of points
     startPt=floor(1e6*start*(1/h.fADCSampleInterval));
@@ -731,13 +741,11 @@ switch h.nOperationMode
       error('number of data points not OK');
     end
     tmp=1e-6*h.lActualAcqLength*h.fADCSampleInterval;
-    if verbose
-      disp(['total length of recording: ' num2str(tmp,'%5.1f') ' s ~ ' num2str(tmp/60,'%3.0f') ' min']);
-      disp(['sampling interval: ' num2str(h.si,'%5.0f') ' µs']);
-      % 8 bytes per data point expressed in Mb
-      disp(['memory requirement for complete upload in matlab: '...
-        num2str(round(8*h.lActualAcqLength/2^20)) ' MB']);
-    end
+    dispif(doDispInfo,['total length of recording: ' num2str(tmp,'%5.1f') ' s ~ ' num2str(tmp/60,'%3.0f') ' min']);
+    dispif(doDispInfo,['sampling interval: ' num2str(h.si,'%5.0f') ' µs']);
+    % 8 bytes per data point expressed in Mb
+    dispif(doDispInfo,['memory requirement for complete upload in matlab: '...
+      num2str(round(8*h.lActualAcqLength/2^20)) ' MB']);
     % recording start and stop times in seconds from midnight
     h.recTime=h.lFileStartTime;
     h.recTime=[h.recTime h.recTime+tmp];
@@ -789,8 +797,8 @@ switch h.nOperationMode
         dix=(1:chunkPtsPerChan:h.dataPtsPerChan)';
         dix(:,2)=dix(:,1)+chunkPtsPerChan-1;
         dix(end,2)=h.dataPtsPerChan;
-        if verbose && nChunk
-          disp(['reading file in ' int2str(nChunk) ' chunks of ~' num2str(chunk) ' Mb']);
+        if nChunk
+          dispif(doDispInfo,['reading file in ' int2str(nChunk) ' chunks of ~' num2str(chunk) ' Mb']);
         end
         % do it: if no remainder exists loop through all rows of dix,
         % otherwise spare last row for the lines below (starting with
@@ -839,7 +847,7 @@ switch h.nOperationMode
       end
     end
   otherwise
-    disp('unknown recording mode -- returning empty matrix');
+    warning('unknown recording mode -- returning empty matrix');
     d=[];
     h.si=[];
 end
@@ -1155,6 +1163,10 @@ if ~isempty(x)
   end
 end
 
+function dispif(doDispInfo, msg)
+if doDispInfo
+  disp(msg)
+end
 
 
 % 
