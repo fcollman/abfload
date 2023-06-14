@@ -52,7 +52,7 @@ function [d,si,h]=abfload(fn,varargin)
 %                                 alternative.
 % doDispInfo  logical, true      if true, information on the loaded file
 %                                 will be put out to console (if false,
-%                                 only ínformation on erroneous input will
+%                                 only Ã­nformation on erroneous input will
 %                                 be displayed)
 % << OUTPUT VARIABLES <<<
 % NAME  TYPE            DESCRIPTION
@@ -90,6 +90,7 @@ function [d,si,h]=abfload(fn,varargin)
 %   Original version by Harald Hentschke (harald.hentschke@uni-tuebingen.de)
 %   Extended to abf version 2.0 by Forrest Collman (fcollman@Princeton.edu)
 %   pvpmod.m by Ulrich Egert (egert@bccn.uni-freiburg.de)
+%   Small patch to avoid error caused by activated HumSilencer by Michael Rabenstein (michael.rabenstein@ukbonn.de)
 
 % -------------------------------------------------------------------------
 %                       PART 1: check of input vars
@@ -742,7 +743,7 @@ switch h.nOperationMode
     end
     tmp=1e-6*h.lActualAcqLength*h.fADCSampleInterval;
     dispif(doDispInfo,['total length of recording: ' num2str(tmp,'%5.1f') ' s ~ ' num2str(tmp/60,'%3.0f') ' min']);
-    dispif(doDispInfo,['sampling interval: ' num2str(h.si,'%5.0f') ' µs']);
+    dispif(doDispInfo,['sampling interval: ' num2str(h.si,'%5.0f') ' Âµs']);
     % 8 bytes per data point expressed in Mb
     dispif(doDispInfo,['memory requirement for complete upload in matlab: '...
       num2str(round(8*h.lActualAcqLength/2^20)) ' MB']);
@@ -854,11 +855,16 @@ end
 fclose(fid);
 
 % finally, possibly add information on episode number to tags
+%Modified by MR to avoid error caused by activated HumSilencer
 if ~isempty(h.tags) && isfield(h,'sweepStartInPts')
-  for i=1:numel(h.tags)
-    tmp=find(h.tags(i).timeSinceRecStart>=h.sweepStartInPts/1e6*h.si);
-    h.tags(i).episodeIndex=tmp(end);
-  end
+    for i=1:numel(h.tags)
+        if h.tags(i).timeSinceRecStart > 0 %Comments added during recording
+            tmp=find(h.tags(i).timeSinceRecStart>=h.sweepStartInPts/1e6*h.si);
+            h.tags(i).episodeIndex=tmp(end);
+        elseif h.tags(i).timeSinceRecStart == 0 %HumSilencer comment at timeSinceRecStart = 0
+            h.tags(i).episodeIndex = 0; %Will be added to episode 0
+        end
+    end
 end
 
 
