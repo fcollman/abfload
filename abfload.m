@@ -302,7 +302,7 @@ if h.fFileVersionNumber>=2
   tmpIx2=strfind(lower(char(BigString)'),'.pro');
   % - extract everything in between and place in field of header struct h
   if ~isempty(tmpIx1) && ~isempty(tmpIx2) 
-    h.protocolName=char(BigString(tmpIx1:tmpIx2(1)+3))';
+    h.protocolName=char(BigString(tmpIx1(1):tmpIx2(1)+3))';
   else
     h.protocolName='protocol name could not be identified';
   end
